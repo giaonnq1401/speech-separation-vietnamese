@@ -58,6 +58,7 @@ class Separation(sb.Brain):
 
         # Add speech distortions
         if stage == sb.Stage.TRAIN:
+            print("\nif stage == sb.Stage.TRAIN")
             with torch.no_grad():
                 if self.hparams.use_speedperturb or self.hparams.use_rand_shift:
                     mix, targets = self.add_speed_perturb(targets, mix_lens)
@@ -82,12 +83,20 @@ class Separation(sb.Brain):
 
                 if self.hparams.limit_training_signal_len:
                     mix, targets = self.cut_signals(mix, targets)
+                
+                print("\nEnd of no grad")
 
         # Separation
+        print("\nMixxxxxxxxx", mix)
+        print("Mix shape:", mix.shape)
         mix_w = self.hparams.Encoder(mix)
+        print("After Encoder:", mix_w.shape)
         est_mask = self.hparams.MaskNet(mix_w)
+        print("After MaskNet:", est_mask.shape)
         mix_w = torch.stack([mix_w] * self.hparams.num_spks)
+        print("After stacking:", mix_w.shape)
         sep_h = mix_w * est_mask
+        print("\n\nSeparation values:", mix_w.shape, est_mask.shape, sep_h.shape)
 
         # Decoding
         est_source = torch.cat(
@@ -97,6 +106,8 @@ class Separation(sb.Brain):
             ],
             dim=-1,
         )
+
+        print("\nest_source", est_source)
 
         # T changed after conv1d in encoder, fix it here
         T_origin = mix.size(1)
@@ -117,6 +128,8 @@ class Separation(sb.Brain):
         amp = AMPConfig.from_name(self.precision)
         should_step = (self.step % self.grad_accumulation_factor) == 0
 
+        print('\nbatchhhhhhhhhhhhhhh', batch)
+
         # Unpacking batch list
         mixture = batch.mix_sig
         targets = [batch.s1_sig, batch.s2_sig]
@@ -129,7 +142,9 @@ class Separation(sb.Brain):
             targets.append(batch.s3_sig)
 
         with self.no_sync(not should_step):
+            print("\nfit_batch doinggggggg...")
             if self.use_amp:
+                print("\nfit_batch ifff")
                 with torch.autocast(
                     dtype=amp.dtype,
                     device_type=torch.device(self.device).type,
@@ -139,13 +154,17 @@ class Separation(sb.Brain):
                     )
                     loss = self.compute_objectives(predictions, targets)
 
+                    print("\nWith torch.autocast")
+
                     # hard threshold the easy dataitems
                     if self.hparams.threshold_byloss:
+                        print("\nselt.hparams.threshold_by_loss")
                         th = self.hparams.threshold
                         loss = loss[loss > th]
                         if loss.nelement() > 0:
                             loss = loss.mean()
                     else:
+                        print("\nElse not self.hparams.threshold")
                         loss = loss.mean()
 
                 if (
@@ -160,7 +179,9 @@ class Separation(sb.Brain):
                         )
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
+                    print('\n_____________')
                 else:
+                    print("\nfit_batch elseeee")
                     self.nonfinite_count += 1
                     logger.info(
                         "infinite loss or empty loss! it happened {} times so far - skipping this batch".format(
@@ -169,6 +190,7 @@ class Separation(sb.Brain):
                     )
                     loss.data = torch.tensor(0.0).to(self.device)
             else:
+                print("\nElse else else")
                 predictions, targets = self.compute_forward(
                     mixture, targets, sb.Stage.TRAIN, noise
                 )
@@ -202,6 +224,8 @@ class Separation(sb.Brain):
                     loss.data = torch.tensor(0.0).to(self.device)
         self.optimizer.zero_grad()
 
+        print("\nfit_batch done")
+
         return loss.detach().cpu()
 
     def evaluate_batch(self, batch, stage):
@@ -209,6 +233,7 @@ class Separation(sb.Brain):
         snt_id = batch.id
         mixture = batch.mix_sig
         targets = [batch.s1_sig, batch.s2_sig]
+        print('\nEvaluate batch0000')
         if self.hparams.num_spks == 3:
             targets.append(batch.s3_sig)
 
@@ -224,6 +249,8 @@ class Separation(sb.Brain):
                     self.hparams.n_audio_to_save += -1
             else:
                 self.save_audio(snt_id[0], mixture, targets, predictions)
+
+        print('\nEvaluate batch')
 
         return loss.mean().detach()
 
@@ -554,6 +581,8 @@ def dataio_prep(hparams):
             datasets, ["id", "mix_sig", "s1_sig", "s2_sig", "s3_sig"]
         )
 
+    print("\nTrain data", train_data)    
+
     return train_data, valid_data, test_data
 
 
@@ -572,6 +601,8 @@ if __name__ == "__main__":
         hyperparams_to_save=hparams_file,
         overrides=overrides,
     )
+
+    print('\nMain mian mian')
 
     # Check if wsj0_tr is set with dynamic mixing
     if hparams["dynamic_mixing"] and not os.path.exists(
@@ -599,6 +630,8 @@ if __name__ == "__main__":
             "fs": hparams["sample_rate"],
         },
     )
+
+    print("\nAfter run_on_main")
 
     # Create dataset objects
     if hparams["dynamic_mixing"]:
@@ -661,6 +694,7 @@ if __name__ == "__main__":
         run_on_main(hparams["pretrained_separator"].collect_files)
         hparams["pretrained_separator"].load_collected()
 
+    print("\Before separator 682")
     # Brain class initialization
     separator = Separation(
         modules=hparams["modules"],
@@ -675,6 +709,7 @@ if __name__ == "__main__":
         for module in separator.modules.values():
             separator.reset_layer_recursively(module)
 
+    print('\nmoiiiiiiiiiiiiiiiii')
     # Training
     separator.fit(
         separator.hparams.epoch_counter,
@@ -683,6 +718,7 @@ if __name__ == "__main__":
         train_loader_kwargs=hparams["dataloader_opts"],
         valid_loader_kwargs=hparams["dataloader_opts"],
     )
+    print('\After traininggggg')
 
     # Eval
     separator.evaluate(test_data, min_key="si-snr")
