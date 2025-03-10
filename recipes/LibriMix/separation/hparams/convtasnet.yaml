@@ -5,7 +5,7 @@ seed: 1234
 __set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
 
 # Đường dẫn dữ liệu
-data_folder: D:/Document/SDH/XuLyTinHieuSoNangCao/LibriMix/storage_dir/Libri2Mix/
+data_folder: "../../../data/LibriMix/storage_dir/Libri2Mix/"
 # data_folder: !PLACEHOLDER
 
 # this is the base folder for dynamic mixing
@@ -15,10 +15,10 @@ experiment_name: convtasnet
 output_folder: !ref results/<experiment_name>/<seed>
 train_log: !ref <output_folder>/train_log.txt
 save_folder: !ref <output_folder>/save
-train_data: !ref D:/Document/SDH/XuLyTinHieuSoNangCao/LibriMix/libri2mix_train-100.csv
-# train_data: !ref <save_folder>/libri2mix_train-100.csv
-valid_data: !ref D:/Document/SDH/XuLyTinHieuSoNangCao/LibriMix/libri2mix_dev.csv
-test_data: !ref D:/Document/SDH/XuLyTinHieuSoNangCao/LibriMix/libri2mix_test.csv
+
+train_data: !ref ../../../data/LibriMix/libri2mix_train-100.csv
+valid_data: !ref ../../../data/LibriMix/libri2mix_dev.csv
+test_data: !ref ../../../data/LibriMix/libri2mix_test.csv
 
 skip_prep: False
 

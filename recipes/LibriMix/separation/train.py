@@ -58,7 +58,6 @@ class Separation(sb.Brain):
 
         # Add speech distortions
         if stage == sb.Stage.TRAIN:
-            print("\nif stage == sb.Stage.TRAIN")
             with torch.no_grad():
                 if self.hparams.use_speedperturb or self.hparams.use_rand_shift:
                     mix, targets = self.add_speed_perturb(targets, mix_lens)
@@ -84,7 +83,6 @@ class Separation(sb.Brain):
                 if self.hparams.limit_training_signal_len:
                     mix, targets = self.cut_signals(mix, targets)
                 
-                print("\nEnd of no grad")
 
         # Separation
         print("\nMixxxxxxxxx", mix)
@@ -107,8 +105,6 @@ class Separation(sb.Brain):
             dim=-1,
         )
 
-        print("\nest_source", est_source)
-
         # T changed after conv1d in encoder, fix it here
         T_origin = mix.size(1)
         T_est = est_source.size(1)
@@ -128,8 +124,6 @@ class Separation(sb.Brain):
         amp = AMPConfig.from_name(self.precision)
         should_step = (self.step % self.grad_accumulation_factor) == 0
 
-        print('\nbatchhhhhhhhhhhhhhh', batch)
-
         # Unpacking batch list
         mixture = batch.mix_sig
         targets = [batch.s1_sig, batch.s2_sig]
@@ -142,9 +136,7 @@ class Separation(sb.Brain):
             targets.append(batch.s3_sig)
 
         with self.no_sync(not should_step):
-            print("\nfit_batch doinggggggg...")
             if self.use_amp:
-                print("\nfit_batch ifff")
                 with torch.autocast(
                     dtype=amp.dtype,
                     device_type=torch.device(self.device).type,
@@ -154,17 +146,13 @@ class Separation(sb.Brain):
                     )
                     loss = self.compute_objectives(predictions, targets)
 
-                    print("\nWith torch.autocast")
-
                     # hard threshold the easy dataitems
                     if self.hparams.threshold_byloss:
-                        print("\nselt.hparams.threshold_by_loss")
                         th = self.hparams.threshold
                         loss = loss[loss > th]
                         if loss.nelement() > 0:
                             loss = loss.mean()
                     else:
-                        print("\nElse not self.hparams.threshold")
                         loss = loss.mean()
 
                 if (
@@ -181,7 +169,6 @@ class Separation(sb.Brain):
                     self.scaler.update()
                     print('\n_____________')
                 else:
-                    print("\nfit_batch elseeee")
                     self.nonfinite_count += 1
                     logger.info(
                         "infinite loss or empty loss! it happened {} times so far - skipping this batch".format(
@@ -190,7 +177,6 @@ class Separation(sb.Brain):
                     )
                     loss.data = torch.tensor(0.0).to(self.device)
             else:
-                print("\nElse else else")
                 predictions, targets = self.compute_forward(
                     mixture, targets, sb.Stage.TRAIN, noise
                 )
@@ -233,7 +219,6 @@ class Separation(sb.Brain):
         snt_id = batch.id
         mixture = batch.mix_sig
         targets = [batch.s1_sig, batch.s2_sig]
-        print('\nEvaluate batch0000')
         if self.hparams.num_spks == 3:
             targets.append(batch.s3_sig)
 
@@ -602,8 +587,6 @@ if __name__ == "__main__":
         overrides=overrides,
     )
 
-    print('\nMain mian mian')
-
     # Check if wsj0_tr is set with dynamic mixing
     if hparams["dynamic_mixing"] and not os.path.exists(
         hparams["base_folder_dm"]
@@ -694,7 +677,6 @@ if __name__ == "__main__":
         run_on_main(hparams["pretrained_separator"].collect_files)
         hparams["pretrained_separator"].load_collected()
 
-    print("\Before separator 682")
     # Brain class initialization
     separator = Separation(
         modules=hparams["modules"],
@@ -709,7 +691,6 @@ if __name__ == "__main__":
         for module in separator.modules.values():
             separator.reset_layer_recursively(module)
 
-    print('\nmoiiiiiiiiiiiiiiiii')
     # Training
     separator.fit(
         separator.hparams.epoch_counter,
@@ -718,7 +699,6 @@ if __name__ == "__main__":
         train_loader_kwargs=hparams["dataloader_opts"],
         valid_loader_kwargs=hparams["dataloader_opts"],
     )
-    print('\After traininggggg')
 
     # Eval
     separator.evaluate(test_data, min_key="si-snr")

@@ -10,8 +10,8 @@ import os
 
 
 def prepare_librimix(
-    datapath="D:/Document/SDH/XuLyTinHieuSoNangCao/LibriMix/storage_dir/Libri2Mix",
-    savepath="D:/Document/SDH/XuLyTinHieuSoNangCao/speech-separation-vietnamese/data/Libri2mix",
+    datapath="../../../data/LibriMix/storage_dir/Libri2Mix",
+    savepath="../../../data/LibriMix",
     n_spks=2,
     skip_prep=False,
     librimix_addnoise=False,
@@ -29,6 +29,8 @@ def prepare_librimix(
         skip_prep (bool): If True, skip data preparation
         librimix_addnoise: If True, add whamnoise to librimix datasets
     """
+
+    print('datapath:', datapath)
 
     if skip_prep:
         return
@@ -217,12 +219,12 @@ def create_libri3mix_csv(
                 }
                 writer.writerow(row)
 
-# if __name__ == "__main__":
-#     prepare_librimix(
-#         datapath="D:/Document/SDH/XuLyTinHieuSoNangCao/LibriMix/storage_dir/Libri2Mix",
-#         savepath="D:/Document/SDH/XuLyTinHieuSoNangCao/speech-separation-vietnamese/data/Libri2mix",
-#         n_spks=2,
-#         skip_prep=False,
-#         librimix_addnoise=False,
-#         fs=8000,
-#     )
+if __name__ == "__main__":
+    prepare_librimix(
+        datapath="../../../data/LibriMix/storage_dir/Libri2Mix",
+        savepath="../../../data/LibriMix",
+        n_spks=2,
+        skip_prep=False,
+        librimix_addnoise=False,
+        fs=8000,
+    )
