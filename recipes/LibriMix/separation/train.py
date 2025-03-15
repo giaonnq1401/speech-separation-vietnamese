@@ -38,6 +38,8 @@ from speechbrain.core import AMPConfig
 from speechbrain.utils.distributed import run_on_main
 from speechbrain.utils.logger import get_logger
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 logger = get_logger(__name__)
 
 
