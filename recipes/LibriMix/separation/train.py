@@ -87,16 +87,10 @@ class Separation(sb.Brain):
                 
 
         # Separation
-        print("\nMixxxxxxxxx", mix)
-        print("Mix shape:", mix.shape)
         mix_w = self.hparams.Encoder(mix)
-        print("After Encoder:", mix_w.shape)
         est_mask = self.hparams.MaskNet(mix_w)
-        print("After MaskNet:", est_mask.shape)
         mix_w = torch.stack([mix_w] * self.hparams.num_spks)
-        print("After stacking:", mix_w.shape)
         sep_h = mix_w * est_mask
-        print("\n\nSeparation values:", mix_w.shape, est_mask.shape, sep_h.shape)
 
         # Decoding
         est_source = torch.cat(
@@ -169,7 +163,6 @@ class Separation(sb.Brain):
                         )
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
-                    print('\n_____________')
                 else:
                     self.nonfinite_count += 1
                     logger.info(
@@ -212,8 +205,6 @@ class Separation(sb.Brain):
                     loss.data = torch.tensor(0.0).to(self.device)
         self.optimizer.zero_grad()
 
-        print("\nfit_batch done")
-
         return loss.detach().cpu()
 
     def evaluate_batch(self, batch, stage):
@@ -236,8 +227,6 @@ class Separation(sb.Brain):
                     self.hparams.n_audio_to_save += -1
             else:
                 self.save_audio(snt_id[0], mixture, targets, predictions)
-
-        print('\nEvaluate batch')
 
         return loss.mean().detach()
 
@@ -566,9 +555,7 @@ def dataio_prep(hparams):
     else:
         sb.dataio.dataset.set_output_keys(
             datasets, ["id", "mix_sig", "s1_sig", "s2_sig", "s3_sig"]
-        )
-
-    print("\nTrain data", train_data)    
+        ) 
 
     return train_data, valid_data, test_data
 
@@ -615,8 +602,6 @@ if __name__ == "__main__":
             "fs": hparams["sample_rate"],
         },
     )
-
-    print("\nAfter run_on_main")
 
     # Create dataset objects
     if hparams["dynamic_mixing"]:

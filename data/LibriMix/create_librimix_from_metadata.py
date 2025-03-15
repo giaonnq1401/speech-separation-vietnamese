@@ -68,7 +68,28 @@ def create_librimix(librispeech_dir, wham_dir, out_dir, metadata_dir, freqs, n_s
         process_metadata_file(csv_path, freqs, n_src, librispeech_dir, wham_dir, out_dir, modes, types)
 
 def process_metadata_file(csv_path, freqs, n_src, librispeech_dir, wham_dir, out_dir, modes, types):
-    md_file = pd.read_csv(csv_path, engine='python').sample(100)
+    md_file = pd.read_csv(csv_path, engine='python')
+    
+    # Determine the number of samples based on the type of data set
+    csv_filename = os.path.basename(csv_path).lower()
+    if 'train' in csv_filename:
+        sample_size = 5000  # Train: 5,000 samples
+    elif 'dev' in csv_filename:
+        sample_size = 500   # Dev: 500 samples
+    elif 'test' in csv_filename:
+        sample_size = 500   # Test: 500 samples
+    else:
+        raise ValueError(f"It is impossible to determine the type of data set from the file name: {csv_filename}")
+    
+    # Randomly get the number of selected samples
+    if len(md_file) < sample_size:
+        print(f"Warning: Data set {csv_filename} Only {len(md_file)} sample, smaller than {sample_size}. Use all data.")
+        md_file_sampled = md_file
+    else:
+        md_file_sampled = md_file.sample(sample_size)
+    
+    print(f"Selected {len(md_file_sampled)} samples from {csv_filename}")
+    
     for freq in freqs:
         freq_path = os.path.join(out_dir, 'wav' + freq)
         freq = int(freq.strip('k')) * 1000
@@ -88,7 +109,7 @@ def process_metadata_file(csv_path, freqs, n_src, librispeech_dir, wham_dir, out
                 subdirs = [f's{i + 1}' for i in range(n_src)] + types + ['noise']
             for subdir in subdirs:
                 os.makedirs(os.path.join(dir_path, subdir))
-            process_utterances(md_file, librispeech_dir, wham_dir, freq, mode, subdirs, dir_path, subset_metadata_path, n_src, types)
+            process_utterances(md_file_sampled, librispeech_dir, wham_dir, freq, mode, subdirs, dir_path, subset_metadata_path, n_src, types)
 
 def process_utterances(md_file, librispeech_dir, wham_dir, freq, mode, subdirs, dir_path, subset_metadata_path, n_src, types):
     md_dic = {}
