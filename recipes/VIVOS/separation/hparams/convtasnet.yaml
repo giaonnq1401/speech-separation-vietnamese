@@ -1,0 +1,38 @@
+# Đường dẫn dữ liệu
+data_folder: ../../../data/vivos  # Thư mục chứa file train.csv (được tạo bởi prepare_data.py)
+train_data: !ref <data_folder>/vivos_train.csv
+valid_data: !ref <data_folder>/vivos_train.csv  # Tạm thời dùng train.csv, thay bằng valid.csv nếu có
+test_data: !ref <data_folder>/vivos_train.csv   # Tạm thời dùng train.csv, thay bằng test.csv nếu có
+
+# Cấu hình mẫu âm thanh
+sample_rate: 8000
+num_spks: 2
+
+# Cấu hình mô hình ConvTasNet (giữ nguyên)
+encoder:
+    kernel_size: 16
+    out_channels: 256
+masknet:
+    in_channels: 256
+    out_channels: 256
+    num_layers: 8
+    dilations: [1, 2, 4, 8, 1, 2, 4, 8]
+decoder:
+    kernel_size: 16
+    in_channels: 256
+
+# Optimizer và scheduler
+optimizer:
+    type: adam
+    lr: 0.0001
+scheduler:
+    type: ReduceLROnPlateau
+    factor: 0.5
+    patience: 2
+
+# Đường dẫn pretrain
+pretrained_path: ../../pretrained_models/convtasnet_librimix.pth
+# pretrained_path: ./pretrained_models/convtasnet_librimix.pth
+
+# Thư mục lưu checkpoint
+output_folder: ./results/convtasnet/
