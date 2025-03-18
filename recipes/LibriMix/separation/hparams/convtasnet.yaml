@@ -22,33 +22,33 @@ test_data: !ref ../../../data/LibriMix/libri2mix_test.csv
 
 skip_prep: False
 
-# Experiment params
 precision: fp32 # bf16, fp16 or fp32 # Set it to True for mixed precision
 num_spks: 2
-noprogressbar: False
-save_audio: False # Save estimated sources on disk
+noprogressbar: false
+save_audio: false # Save estimated sources on disk
 sample_rate: 8000
 
 ####################### Training Parameters ####################################
-N_epochs: 1
-batch_size: 1
-lr: 0.01
+N_epochs: 50
+batch_size: 2
+gradient_accumulation: 4
+lr: 0.001
 clip_grad_norm: 5
 loss_upper_lim: 999999  # this is the upper limit for an acceptable loss
 # if True, the training sequences are cut to a specified length
-limit_training_signal_len: False
+limit_training_signal_len: false
 # this is the length of sequences if we choose to limit
 # the signal length of training sequences
 training_signal_len: 32000000
 
 # Set it to True to dynamically create mixtures at training time
-dynamic_mixing: False
-use_wham_noise: False
+dynamic_mixing: false
+use_wham_noise: false
 
 # Parameters for data augmentation
-use_wavedrop: False
-use_speedperturb: True
-use_rand_shift: False
+use_wavedrop: false
+use_speedperturb: true
+use_rand_shift: false
 min_shift: -8000
 max_shift: 8000
 

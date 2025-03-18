@@ -5,5 +5,5 @@ create-librimix:
     --librimix_outdir data/LibriMix/storage_dir \
     --n_src 2 \
     --freqs 8k \
-    --modes min max \
+    --modes min \
     --types mix_clean

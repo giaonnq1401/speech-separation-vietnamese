@@ -341,28 +341,28 @@ class Separation(sb.Brain):
     def save_results(self, test_data):
         """This script computes the SDR and SI-SNR metrics and saves
         them into a csv file"""
-
+    
         # This package is required for SDR computation
         from mir_eval.separation import bss_eval_sources
-
+    
         # Create folders where to store audio
         save_file = os.path.join(self.hparams.output_folder, "test_results.csv")
-
+    
         # Variable init
         all_sdrs = []
         all_sdrs_i = []
         all_sisnrs = []
         all_sisnrs_i = []
         csv_columns = ["snt_id", "sdr", "sdr_i", "si-snr", "si-snr_i"]
-
+    
         test_loader = sb.dataio.dataloader.make_dataloader(
             test_data, **self.hparams.dataloader_opts
         )
-
+    
         with open(save_file, "w", newline="", encoding="utf-8") as results_csv:
             writer = csv.DictWriter(results_csv, fieldnames=csv_columns)
             writer.writeheader()
-
+    
             # Loop over all test sentence
             with tqdm(test_loader, dynamic_ncols=True) as t:
                 for i, batch in enumerate(t):
@@ -372,15 +372,15 @@ class Separation(sb.Brain):
                     targets = [batch.s1_sig, batch.s2_sig]
                     if self.hparams.num_spks == 3:
                         targets.append(batch.s3_sig)
-
+    
                     with torch.no_grad():
                         predictions, targets = self.compute_forward(
                             batch.mix_sig, targets, sb.Stage.TEST
                         )
-
+    
                     # Compute SI-SNR
                     sisnr = self.compute_objectives(predictions, targets)
-
+    
                     # Compute SI-SNR improvement
                     mixture_signal = torch.stack(
                         [mixture] * self.hparams.num_spks, dim=-1
@@ -390,36 +390,40 @@ class Separation(sb.Brain):
                         mixture_signal, targets
                     )
                     sisnr_i = sisnr - sisnr_baseline
-
+    
                     # Compute SDR
                     sdr, _, _, _ = bss_eval_sources(
                         targets[0].t().cpu().numpy(),
                         predictions[0].t().detach().cpu().numpy(),
                     )
-
+    
                     sdr_baseline, _, _, _ = bss_eval_sources(
                         targets[0].t().cpu().numpy(),
                         mixture_signal[0].t().detach().cpu().numpy(),
                     )
-
+    
                     sdr_i = sdr.mean() - sdr_baseline.mean()
-
+    
+                    # Convert tensor values to scalars using mean() method
+                    sisnr_value = -sisnr.mean().item()
+                    sisnr_i_value = -sisnr_i.mean().item()
+    
                     # Saving on a csv file
                     row = {
                         "snt_id": snt_id[0],
                         "sdr": sdr.mean(),
                         "sdr_i": sdr_i,
-                        "si-snr": -sisnr.item(),
-                        "si-snr_i": -sisnr_i.item(),
+                        "si-snr": sisnr_value,
+                        "si-snr_i": sisnr_i_value,
                     }
                     writer.writerow(row)
-
+    
                     # Metric Accumulation
                     all_sdrs.append(sdr.mean())
                     all_sdrs_i.append(sdr_i.mean())
-                    all_sisnrs.append(-sisnr.item())
-                    all_sisnrs_i.append(-sisnr_i.item())
-
+                    all_sisnrs.append(sisnr_value)
+                    all_sisnrs_i.append(sisnr_i_value)
+    
                 row = {
                     "snt_id": "avg",
                     "sdr": np.array(all_sdrs).mean(),
@@ -428,7 +432,7 @@ class Separation(sb.Brain):
                     "si-snr_i": np.array(all_sisnrs_i).mean(),
                 }
                 writer.writerow(row)
-
+    
         logger.info("Mean SISNR is {}".format(np.array(all_sisnrs).mean()))
         logger.info("Mean SISNRi is {}".format(np.array(all_sisnrs_i).mean()))
         logger.info("Mean SDR is {}".format(np.array(all_sdrs).mean()))
