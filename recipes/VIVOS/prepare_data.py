@@ -42,11 +42,11 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
 
     # Kiểm tra xem file CSV và các thư mục có tồn tại không
     if not os.path.exists(csv_file):
-        raise FileNotFoundError(f"File CSV không tồn tại: {csv_file}")
+        raise FileNotFoundError(f"File CSV does not exist: {csv_file}")
     if not os.path.exists(base_path_mixtures):
-        raise FileNotFoundError(f"Thư mục mixtures không tồn tại: {base_path_mixtures}")
+        raise FileNotFoundError(f"Folder mixtures does not exist: {base_path_mixtures}")
     if not os.path.exists(base_path_sources):
-        raise FileNotFoundError(f"Thư mục sources không tồn tại: {base_path_sources}")
+        raise FileNotFoundError(f"Folder sources does not exist: {base_path_sources}")
 
     # Đọc file CSV
     with open(csv_file, 'r', encoding='utf-8') as f:
@@ -60,7 +60,7 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
-        for i, row in tqdm(enumerate(data), desc=f"Xử lý dữ liệu {split}", total=len(data)):
+        for i, row in tqdm(enumerate(data), desc=f"Data processing {split}", total=len(data)):
             # Điều chỉnh path mixture
             mix_path = os.path.join(base_path_mixtures, row["mixture"].split("/")[-1])
             # Sources luôn lấy từ ./data/vivos/train/waves
@@ -70,13 +70,13 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
 
             # Kiểm tra xem các file âm thanh có tồn tại không
             if not os.path.exists(mix_path):
-                print(f"Cảnh báo: File mixture không tồn tại: {mix_path}")
+                print(f"Warning: File mixture does not exist: {mix_path}")
                 continue
             if not os.path.exists(s1_path):
-                print(f"Cảnh báo: File source1 không tồn tại: {s1_path}")
+                print(f"Warning: File source1 does not exist: {s1_path}")
                 continue
             if not os.path.exists(s2_path):
-                print(f"Cảnh báo: File source2 không tồn tại: {s2_path}")
+                print(f"Warning: File source2 does not exist: {s2_path}")
                 continue
 
             # Nếu fix_length=True, đảm bảo độ dài các file là như nhau
@@ -123,10 +123,10 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
                 "s2_wav": s2_path,
             })
 
-    print(f"Đã tạo file CSV tại: {output_csv}")
+    print(f"Created CSV file at: {output_csv}")
     
     if fix_length and processed_output:
-        print(f"Đã xử lý và lưu các file âm thanh tại: {processed_output}")
+        print(f"Handled and saved audio files at: {processed_output}")
     
     return output_csv
 

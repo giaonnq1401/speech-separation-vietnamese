@@ -40,20 +40,10 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
     else:
         processed_output = None
 
-    # Kiểm tra xem file CSV và các thư mục có tồn tại không
-    if not os.path.exists(csv_file):
-        raise FileNotFoundError(f"File CSV không tồn tại: {csv_file}")
-    if not os.path.exists(base_path_mixtures):
-        raise FileNotFoundError(f"Thư mục mixtures không tồn tại: {base_path_mixtures}")
-    if not os.path.exists(base_path_sources):
-        raise FileNotFoundError(f"Thư mục sources không tồn tại: {base_path_sources}")
-
-    # Đọc file CSV
     with open(csv_file, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f, delimiter='|')
         data = list(reader)
 
-    # Tạo file CSV đầu ra cho tập tương ứng (train/test)
     output_csv = os.path.join(save_path, f"vivos_{split}.csv")
     with open(output_csv, 'w', newline='', encoding='utf-8') as f:
         fieldnames = ["ID", "duration", "mix_wav", "s1_wav", "s2_wav"]
@@ -61,82 +51,126 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
         writer.writeheader()
 
         for i, row in tqdm(enumerate(data), desc=f"Xử lý dữ liệu {split}", total=len(data)):
-            # Điều chỉnh path mixture
             mix_path = os.path.join(base_path_mixtures, row["mixture"].split("/")[-1])
-            # Sources luôn lấy từ ./data/vivos/train/waves
             s1_path = os.path.join(base_path_sources, row["source1"])
             s2_path = os.path.join(base_path_sources, row["source2"])
-            duration = row["duration"]
 
-            # Kiểm tra xem các file âm thanh có tồn tại không
-            if not os.path.exists(mix_path):
-                print(f"Cảnh báo: File mixture không tồn tại: {mix_path}")
-                continue
-            if not os.path.exists(s1_path):
-                print(f"Cảnh báo: File source1 không tồn tại: {s1_path}")
-                continue
-            if not os.path.exists(s2_path):
-                print(f"Cảnh báo: File source2 không tồn tại: {s2_path}")
-                continue
-
-            # Nếu fix_length=True, đảm bảo độ dài các file là như nhau
             if fix_length and processed_output:
-                # Đọc các file âm thanh
-                mix_wav, mix_sr = torchaudio.load(mix_path)
+                # Load file gốc và file nguồn
+                mix_wav, mix_wav_orig, mix_sr = torchaudio.load(mix_path)
                 s1_wav, s1_sr = torchaudio.load(s1_path)
                 s2_wav, s2_sr = torchaudio.load(s2_path)
 
-                # Tìm độ dài nhỏ nhất
-                min_length = min(mix_wav.shape[1], s1_wav.shape[1], s2_wav.shape[1])
+                print(mix_wav_orig.shape[1], mix_sr, mix_wav)
 
-                # Cắt các file về cùng độ dài
-                mix_wav = mix_wav[:, :min_length]
-                s1_wav = s1_wav[:, :min_length]
-                s2_wav = s2_wav[:, :min_length]
+                # Đồng bộ tần số lấy mẫu
+                if s1_sr != mix_sr:
+                    s1_wav = torchaudio.transforms.Resample(s1_sr, mix_sr)(s1_wav)
+                    s1_sr = mix_sr
+                if s2_sr != mix_sr:
+                    s2_wav = torchaudio.transforms.Resample(s2_sr, mix_sr)(s2_wav)
+                    s2_sr = mix_sr
 
-                # Lưu các file âm thanh đã xử lý
-                mix_filename = f"mix_{split}_{i:05d}.wav"
-                s1_filename = f"s1_{split}_{i:05d}.wav"
-                s2_filename = f"s2_{split}_{i:05d}.wav"
+                # Debug: In độ dài trước khi xử lý
+                print(f"Trước xử lý - ID {i}: mix_orig: {mix_wav_orig.shape[1]} ({mix_wav_orig.shape[1]/mix_sr:.2f}s), "
+                    f"s1: {s1_wav.shape[1]} ({s1_wav.shape[1]/mix_sr:.2f}s), s2: {s2_wav.shape[1]} ({s2_wav.shape[1]/mix_sr:.2f}s)")
 
-                mix_output_path = os.path.join(processed_output, "mix", mix_filename)
-                s1_output_path = os.path.join(processed_output, "s1", s1_filename)
-                s2_output_path = os.path.join(processed_output, "s2", s2_filename)
+                # Tìm độ dài tối đa giữa mix_wav, s1_wav, và s2_wav
+                max_length = max(mix_wav_orig.shape[1], s1_wav.shape[1], s2_wav.shape[1])
+                
+                # Đệm tất cả các file lên max_length
+                if mix_wav_orig.shape[1] < max_length:
+                    mix_wav_orig = F.pad(mix_wav_orig, (0, max_length - mix_wav_orig.shape[1]))
+                    
+                if s1_wav.shape[1] < max_length:
+                    s1_wav = F.pad(s1_wav, (0, max_length - s1_wav.shape[1]))
+                    
+                if s2_wav.shape[1] < max_length:
+                    s2_wav = F.pad(s2_wav, (0, max_length - s2_wav.shape[1]))
 
+                # Debug: In độ dài sau khi đệm
+                print(f"Sau đệm - ID {i}: mix: {mix_wav_orig.shape[1]} ({mix_wav_orig.shape[1]/mix_sr:.2f}s), "
+                    f"s1: {s1_wav.shape[1]} ({s1_wav.shape[1]/mix_sr:.2f}s), s2: {s2_wav.shape[1]} ({s2_wav.shape[1]/mix_sr:.2f}s)")
+
+                # Lấy mix_wav là tổng của s1_wav và s2_wav (tạo lại mix từ 2 nguồn)
+                mix_wav = s1_wav + s2_wav
+
+                # Cắt tất cả về cùng kích thước (đảm bảo)
+                target_length = max_length
+                mix_wav = mix_wav[:, :target_length]
+                s1_wav = s1_wav[:, :target_length]
+                s2_wav = s2_wav[:, :target_length]
+
+                # Debug: In độ dài ngay trước khi lưu
+                print(f"Trước khi lưu - ID {i}: mix: {mix_wav.shape[1]} ({mix_wav.shape[1]/mix_sr:.2f}s), "
+                    f"s1: {s1_wav.shape[1]} ({s1_wav.shape[1]/mix_sr:.2f}s), s2: {s2_wav.shape[1]} ({s2_wav.shape[1]/mix_sr:.2f}s)")
+
+                # Lưu các file
+                mix_output_path = os.path.join(processed_output, "mix", f"mix_{split}_{i:05d}.wav")
+                s1_output_path = os.path.join(processed_output, "s1", f"s1_{split}_{i:05d}.wav")
+                s2_output_path = os.path.join(processed_output, "s2", f"s2_{split}_{i:05d}.wav")
+
+                # Kiểm tra là mono hay stereo và đảm bảo lưu đúng định dạng
+                if mix_wav.shape[0] > 1:
+                    mix_wav = mix_wav[0:1]  # Lấy kênh đầu tiên nếu là stereo
+                if s1_wav.shape[0] > 1:
+                    s1_wav = s1_wav[0:1]
+                if s2_wav.shape[0] > 1:
+                    s2_wav = s2_wav[0:1]
+
+                # Lưu với các thông số không thay đổi
                 torchaudio.save(mix_output_path, mix_wav, mix_sr)
-                torchaudio.save(s1_output_path, s1_wav, s1_sr)
-                torchaudio.save(s2_output_path, s2_wav, s2_sr)
+                torchaudio.save(s1_output_path, s1_wav, mix_sr)  # Đảm bảo cùng sample rate
+                torchaudio.save(s2_output_path, s2_wav, mix_sr)  # Đảm bảo cùng sample rate
 
-                # Cập nhật đường dẫn cho CSV
-                mix_path = mix_output_path
-                s1_path = s1_output_path
-                s2_path = s2_output_path
+                # Kiểm tra lại file đã lưu
+                mix_wav_saved, mix_sr_saved = torchaudio.load(mix_output_path)
+                s1_wav_saved, s1_sr_saved = torchaudio.load(s1_output_path)
+                s2_wav_saved, s2_sr_saved = torchaudio.load(s2_output_path)
+                
+                print(f"Sau khi lưu - ID {i}: mix: {mix_wav_saved.shape[1]} ({mix_wav_saved.shape[1]/mix_sr_saved:.2f}s), "
+                      f"s1: {s1_wav_saved.shape[1]} ({s1_wav_saved.shape[1]/s1_sr_saved:.2f}s), "
+                      f"s2: {s2_wav_saved.shape[1]} ({s2_wav_saved.shape[1]/s2_sr_saved:.2f}s)")
+
+                # Kiểm tra xem các file có cùng độ dài không
+                if not (mix_wav_saved.shape[1] == s1_wav_saved.shape[1] == s2_wav_saved.shape[1]):
+                    print(f"CẢNH BÁO: Các file ID {i} có độ dài khác nhau sau khi lưu!")
 
                 # Cập nhật duration
-                duration = min_length / mix_sr
+                duration = target_length / mix_sr
 
-            writer.writerow({
-                "ID": f"mix_{split}_{i:05d}",
-                "duration": duration,
-                "mix_wav": mix_path,
-                "s1_wav": s1_path,
-                "s2_wav": s2_path,
-            })
+                writer.writerow({
+                    "ID": f"mix_{split}_{i:05d}",
+                    "duration": duration,
+                    "mix_wav": mix_output_path,
+                    "s1_wav": s1_output_path,
+                    "s2_wav": s2_output_path,
+                })
+            else:
+                # Chỉ lưu thông tin vào CSV mà không xử lý file
+                mix_wav, mix_sr = torchaudio.load(mix_path)
+                duration = mix_wav.shape[1] / mix_sr
+                
+                writer.writerow({
+                    "ID": f"mix_{split}_{i:05d}",
+                    "duration": duration,
+                    "mix_wav": mix_path,
+                    "s1_wav": s1_path,
+                    "s2_wav": s2_path,
+                })
 
     print(f"Đã tạo file CSV tại: {output_csv}")
-    
     if fix_length and processed_output:
         print(f"Đã xử lý và lưu các file âm thanh tại: {processed_output}")
-    
     return output_csv
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Chuẩn bị dữ liệu VIVOS cho SpeechBrain.")
-    parser.add_argument("--csv_file", type=str, default="../../../data/vivos/mixture/annotation.csv", 
+    parser.add_argument("--csv_file", type=str, default="../../../data/vivos/mixture/test/annotation.csv", 
                         help="Đường dẫn tới file CSV của VIVOS.")
     parser.add_argument("--save_path", type=str, default="../../../data/vivos", 
                         help="Thư mục lưu file .csv.")
-    parser.add_argument("--split", type=str, default="train", choices=["train", "test"], 
+    parser.add_argument("--split", type=str, default="test", choices=["train", "test"], 
                         help="Tập dữ liệu cần xử lý (train hoặc test).")
     parser.add_argument("--fix_length", action="store_true", 
                         help="Đảm bảo các file âm thanh trong một mẫu có cùng độ dài.")
