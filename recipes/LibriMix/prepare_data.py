@@ -10,8 +10,8 @@ import os
 
 
 def prepare_librimix(
-    datapath,
-    savepath,
+    datapath="D:/Document/SDH/XuLyTinHieuSoNangCao/LibriMix/Libri2Mix",
+    savepath="D:/Document/SDH/XuLyTinHieuSoNangCao/LibriMix",
     n_spks=2,
     skip_prep=False,
     librimix_addnoise=False,
@@ -56,7 +56,7 @@ def create_libri2mix_csv(
     savepath,
     addnoise=False,
     version="wav8k/min/",
-    set_types=["train-360", "dev", "test"],
+    set_types=["train-100"],
 ):
     """
     This functions creates the .csv file for the libri2mix dataset
