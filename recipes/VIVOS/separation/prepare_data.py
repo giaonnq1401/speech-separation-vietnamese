@@ -57,11 +57,11 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
 
             if fix_length and processed_output:
                 # Load file gốc và file nguồn
-                mix_wav, mix_wav_orig, mix_sr = torchaudio.load(mix_path)
+                mix_wav_orig, mix_sr = torchaudio.load(mix_path)
                 s1_wav, s1_sr = torchaudio.load(s1_path)
                 s2_wav, s2_sr = torchaudio.load(s2_path)
 
-                print(mix_wav_orig.shape[1], mix_sr, mix_wav)
+                # print(mix_wav_orig.shape[1], mix_sr, mix_wav)
 
                 # Đồng bộ tần số lấy mẫu
                 if s1_sr != mix_sr:
@@ -72,8 +72,8 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
                     s2_sr = mix_sr
 
                 # Debug: In độ dài trước khi xử lý
-                print(f"Trước xử lý - ID {i}: mix_orig: {mix_wav_orig.shape[1]} ({mix_wav_orig.shape[1]/mix_sr:.2f}s), "
-                    f"s1: {s1_wav.shape[1]} ({s1_wav.shape[1]/mix_sr:.2f}s), s2: {s2_wav.shape[1]} ({s2_wav.shape[1]/mix_sr:.2f}s)")
+                # print(f"Trước xử lý - ID {i}: mix_orig: {mix_wav_orig.shape[1]} ({mix_wav_orig.shape[1]/mix_sr:.2f}s), "
+                #     f"s1: {s1_wav.shape[1]} ({s1_wav.shape[1]/mix_sr:.2f}s), s2: {s2_wav.shape[1]} ({s2_wav.shape[1]/mix_sr:.2f}s)")
 
                 # Tìm độ dài tối đa giữa mix_wav, s1_wav, và s2_wav
                 max_length = max(mix_wav_orig.shape[1], s1_wav.shape[1], s2_wav.shape[1])
@@ -89,8 +89,8 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
                     s2_wav = F.pad(s2_wav, (0, max_length - s2_wav.shape[1]))
 
                 # Debug: In độ dài sau khi đệm
-                print(f"Sau đệm - ID {i}: mix: {mix_wav_orig.shape[1]} ({mix_wav_orig.shape[1]/mix_sr:.2f}s), "
-                    f"s1: {s1_wav.shape[1]} ({s1_wav.shape[1]/mix_sr:.2f}s), s2: {s2_wav.shape[1]} ({s2_wav.shape[1]/mix_sr:.2f}s)")
+                # print(f"Sau đệm - ID {i}: mix: {mix_wav_orig.shape[1]} ({mix_wav_orig.shape[1]/mix_sr:.2f}s), "
+                #     f"s1: {s1_wav.shape[1]} ({s1_wav.shape[1]/mix_sr:.2f}s), s2: {s2_wav.shape[1]} ({s2_wav.shape[1]/mix_sr:.2f}s)")
 
                 # Lấy mix_wav là tổng của s1_wav và s2_wav (tạo lại mix từ 2 nguồn)
                 mix_wav = s1_wav + s2_wav
@@ -102,8 +102,8 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
                 s2_wav = s2_wav[:, :target_length]
 
                 # Debug: In độ dài ngay trước khi lưu
-                print(f"Trước khi lưu - ID {i}: mix: {mix_wav.shape[1]} ({mix_wav.shape[1]/mix_sr:.2f}s), "
-                    f"s1: {s1_wav.shape[1]} ({s1_wav.shape[1]/mix_sr:.2f}s), s2: {s2_wav.shape[1]} ({s2_wav.shape[1]/mix_sr:.2f}s)")
+                # print(f"Trước khi lưu - ID {i}: mix: {mix_wav.shape[1]} ({mix_wav.shape[1]/mix_sr:.2f}s), "
+                #     f"s1: {s1_wav.shape[1]} ({s1_wav.shape[1]/mix_sr:.2f}s), s2: {s2_wav.shape[1]} ({s2_wav.shape[1]/mix_sr:.2f}s)")
 
                 # Lưu các file
                 mix_output_path = os.path.join(processed_output, "mix", f"mix_{split}_{i:05d}.wav")
@@ -128,9 +128,9 @@ def prepare_vivos(csv_file, save_path, split="train", fix_length=True, output_fo
                 s1_wav_saved, s1_sr_saved = torchaudio.load(s1_output_path)
                 s2_wav_saved, s2_sr_saved = torchaudio.load(s2_output_path)
                 
-                print(f"Sau khi lưu - ID {i}: mix: {mix_wav_saved.shape[1]} ({mix_wav_saved.shape[1]/mix_sr_saved:.2f}s), "
-                      f"s1: {s1_wav_saved.shape[1]} ({s1_wav_saved.shape[1]/s1_sr_saved:.2f}s), "
-                      f"s2: {s2_wav_saved.shape[1]} ({s2_wav_saved.shape[1]/s2_sr_saved:.2f}s)")
+                # print(f"Sau khi lưu - ID {i}: mix: {mix_wav_saved.shape[1]} ({mix_wav_saved.shape[1]/mix_sr_saved:.2f}s), "
+                #       f"s1: {s1_wav_saved.shape[1]} ({s1_wav_saved.shape[1]/s1_sr_saved:.2f}s), "
+                #       f"s2: {s2_wav_saved.shape[1]} ({s2_wav_saved.shape[1]/s2_sr_saved:.2f}s)")
 
                 # Kiểm tra xem các file có cùng độ dài không
                 if not (mix_wav_saved.shape[1] == s1_wav_saved.shape[1] == s2_wav_saved.shape[1]):

@@ -41,9 +41,10 @@ save_audio: False # Save estimated sources on disk
 sample_rate: 8000
 
 ####################### Training Parameters ####################################
-N_epochs: 1
+N_epochs: 10
 batch_size: 1
-lr: 0.01
+gradient_accumulation: 4
+lr: 0.001
 # lr: 0.00015
 clip_grad_norm: 5
 loss_upper_lim: 999999  # this is the upper limit for an acceptable loss
@@ -199,3 +200,7 @@ pretrained_separator: !new:speechbrain.utils.parameter_transfer.Pretrainer
         encoder: speechbrain/sepformer-libri2mix/encoder.ckpt
         decoder: speechbrain/sepformer-libri2mix/decoder.ckpt
         masknet: speechbrain/sepformer-libri2mix/masknet.ckpt
+
+
+
+output_before_finetune: !ref results/<experiment_name>/<seed>/pretrained

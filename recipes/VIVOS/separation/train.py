@@ -407,21 +407,25 @@ class Separation(sb.Brain):
 
                     sdr_i = sdr.mean() - sdr_baseline.mean()
 
+                    # Convert tensor values to scalars using mean() method
+                    sisnr_value = -sisnr.mean().item()
+                    sisnr_i_value = -sisnr_i.mean().item()
+
                     # Saving on a csv file
                     row = {
                         "snt_id": snt_id[0],
                         "sdr": sdr.mean(),
                         "sdr_i": sdr_i,
-                        "si-snr": -sisnr.item(),
-                        "si-snr_i": -sisnr_i.item(),
+                        "si-snr": sisnr_value,
+                        "si-snr_i": sisnr_i_value,
                     }
                     writer.writerow(row)
 
                     # Metric Accumulation
                     all_sdrs.append(sdr.mean())
                     all_sdrs_i.append(sdr_i.mean())
-                    all_sisnrs.append(-sisnr.item())
-                    all_sisnrs_i.append(-sisnr_i.item())
+                    all_sisnrs.append(sisnr_i_value)
+                    all_sisnrs_i.append(sisnr_i_value)
 
                 row = {
                     "snt_id": "avg",
