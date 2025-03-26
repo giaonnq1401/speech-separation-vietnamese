@@ -30,6 +30,7 @@ MANIFEST
 data/LibriMix/LibriSpeech/
 data/LibriMix/storage_dir/
 data/vivos/
+recipes/VIVOS/separation/sepformer-vivos
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

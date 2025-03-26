@@ -27,8 +27,8 @@ save_audio: false # Save estimated sources on disk
 sample_rate: 8000
 
 ####################### Training Parameters ####################################
-N_epochs: 1
-batch_size: 2
+N_epochs: 20
+batch_size: 1
 gradient_accumulation: 4
 lr: 0.001
 clip_grad_norm: 5
